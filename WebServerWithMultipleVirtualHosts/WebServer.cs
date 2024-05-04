@@ -11,17 +11,17 @@ namespace WebServerWithMultipleVirtualHosts
     public class WebServer
     {
         private readonly IConfiguration _configuration;
-        private readonly ICollection<VirtualHost> VirtualHosts;
+        private readonly ICollection<VirtualHost> _virtualHosts;
 
         public WebServer(IConfiguration configuration)
         {
             _configuration = configuration;
-            VirtualHosts = GetProvidedHosts();
+            _virtualHosts = GetProvidedHosts();
         }
 
         public void Start()
         {
-            foreach (var hostConfig in VirtualHosts)
+            foreach (var hostConfig in _virtualHosts)
             {
                 var host = new WebHostBuilder()
                     .UseKestrel()
@@ -36,7 +36,7 @@ namespace WebServerWithMultipleVirtualHosts
 
         private async Task HandleRequest(HttpContext context)
         {
-            VirtualHost? requestedHost = VirtualHosts
+            VirtualHost? requestedHost = _virtualHosts
                 .FirstOrDefault(x => x.Port == context.Request.Host.Port.ToString());
 
             if (requestedHost == null)
@@ -89,20 +89,28 @@ namespace WebServerWithMultipleVirtualHosts
         {
             var hosts = new List<VirtualHost>();
 
-            var virtualHosts = _configuration.GetSection("VirtualHosts").GetChildren().AsEnumerable();
+            var virtualHosts = _configuration
+                .GetSection("VirtualHosts")
+                .GetChildren()
+                .AsEnumerable();
 
             foreach (var host in virtualHosts)
             {
+                string rootDirectoryPath = host.GetSection("RootDir").Value ?? string.Empty;
+                string logFilePath = host.GetSection("LogFile").Value ?? string.Empty;
+
                 Log.Logger = new LoggerConfiguration()
-                 .WriteTo.File(host.GetSection("LogFile").Value ?? string.Empty)
+                 .WriteTo.File(logFilePath)
                  .CreateLogger();
+
+                Directory.CreateDirectory(rootDirectoryPath);
 
                 hosts.Add(new VirtualHost()
                 {
                     Name = host.GetSection("Name").Value ?? string.Empty,
                     Port = host.GetSection("Port").Value ?? string.Empty,
-                    RootDir = host.GetSection("RootDir").Value ?? string.Empty,
-                    LogFile = host.GetSection("LogFile").Value ?? string.Empty,
+                    RootDir = rootDirectoryPath,
+                    LogFile = logFilePath,
                     Loger = Log.Logger
                 });
             }
@@ -130,8 +138,9 @@ namespace WebServerWithMultipleVirtualHosts
             }
 
             sb.AppendLine($"Remote IP Address: {context.Connection.RemoteIpAddress}");
+            sb.AppendLine();
 
-            return sb.ToString().TrimEnd();
+            return sb.ToString();
         }
     }
 }
