@@ -1,9 +1,13 @@
 ﻿using Microsoft.Extensions.Configuration;
 using WebServerWithMultipleVirtualHosts;
 
+string directory = Directory.GetCurrentDirectory();
+string jsonFile = Path.GetFullPath(Path.Combine(directory, @"..\..\..\appSettings.json"));
+
 var configuration = new ConfigurationBuilder()
-           .AddJsonFile(@"C:\Users\valki\Desktop\Programing\Project_For_Intern_C#\WebServerWithMultipleVirtualHosts\WebServerWithMultipleVirtualHosts\appSettings.json")
-           .Build();
+    .AddEnvironmentVariables("Development")
+    .AddJsonFile(jsonFile)
+    .Build();
 
 var webServer = new WebServer(configuration);
 webServer.Start();

@@ -53,7 +53,7 @@ namespace WebServerWithMultipleVirtualHosts
             {
                 var files = Directory.GetFiles(requestedHost.RootDir);
 
-                await context.Response.WriteAsync("<h1>Files:</h1>");
+                await context.Response.WriteAsync($"<h1>Files from {requestedHost.Name}:</h1>");
 
                 foreach (var file in files)
                 {
